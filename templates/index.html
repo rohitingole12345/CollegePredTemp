@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MHT CET College Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .loading-spinner {
+            display: none;
+            margin: 10px 0;
+        }
+        .error-message {
+            color: red;
+            margin: 10px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold text-center mb-6">MHT CET College Predictor</h1>
+
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <form id="predictForm" class="space-y-4">
+                <div>
+                    <label for="percentile" class="block text-sm font-medium text-gray-700">Percentile (0-100):</label>
+                    <input type="number" id="percentile" name="percentile" min="0" max="100" step="0.01" required
+                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="gender" class="block text-sm font-medium text-gray-700">Gender:</label>
+                    <select id="gender" name="gender" required
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="caste" class="block text-sm font-medium text-gray-700">Caste:</label>
+                    <select id="caste" name="caste" required
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="Open">Open</option>
+                        <option value="SC">SC</option>
+                        <option value="ST">ST</option>
+                        <option value="OBC">OBC</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="branch" class="block text-sm font-medium text-gray-700">Branch:</label>
+                    <select id="branch" name="branch" required
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="Computer Science and Engineering">Computer Science and Engineering</option>
+                        <option value="Electronics Engineering">Electronics Engineering</option>
+                        <option value="Mechanical Engineering">Mechanical Engineering</option>
+                        <option value="Civil Engineering">Civil Engineering</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">
+                    Get Recommendations
+                </button>
+            </form>
+            <div id="loadingSpinner" class="loading-spinner flex justify-center">
+                <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <div id="errorMessage" class="error-message text-center"></div>
+        </div>
+
+        <div id="results" class="hidden">
+            <h2 class="text-2xl font-semibold mb-4">Recommended Colleges</h2>
+            <table class="min-w-full bg-white rounded-lg shadow-md">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-700">
+                        <th class="py-2 px-4 text-left cursor-pointer" onclick="sortTable(0)">College</th>
+                        <th class="py-2 px-4 text-left cursor-pointer" onclick="sortTable(1)">Category</th>
+                        <th class="py-2 px-4 text-left cursor-pointer" onclick="sortTable(2)">Historical Cutoff</th>
+                        <th class="py-2 px-4 text-left cursor-pointer" onclick="sortTable(3)">Years Used</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            document.getElementById('loadingSpinner').style.display = 'flex';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('results').classList.add('hidden');
+
+            const formData = {
+                percentile: document.getElementById('percentile').value,
+                gender: document.getElementById('gender').value,
+                caste: document.getElementById('caste').value,
+                branch: document.getElementById('branch').value
+            };
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                document.getElementById('loadingSpinner').style.display = 'none';
+
+                if (!response.ok || data.error) {
+                    document.getElementById('errorMessage').textContent = data.error || 'An error occurred while fetching recommendations.';
+                    document.getElementById('errorMessage').style.display = 'block';
+                    return;
+                }
+
+                const tableBody = document.getElementById('resultsTableBody');
+                tableBody.innerHTML = '';
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    const collegeCell = row.Website
+                        ? `<a href="${row.Website}" target="_blank" class="text-blue-600 hover:underline">${row.College}</a>`
+                        : row.College;
+                    tr.innerHTML = `
+                        <td class="py-2 px-4 border-b">${collegeCell}</td>
+                        <td class="py-2 px-4 border-b">${row.Category}</td>
+                        <td class="py-2 px-4 border-b">${row['Historical Cutoff']}</td>
+                        <td class="py-2 px-4 border-b">${row['Years Used']}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+
+                document.getElementById('results').classList.remove('hidden');
+            } catch (error) {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('errorMessage').textContent = 'Failed to connect to the server: ' + error.message;
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        });
+
+        function sortTable(columnIndex) {
+            const table = document.getElementById('resultsTableBody');
+            const rows = Array.from(table.getElementsByTagName('tr'));
+            const isNumeric = columnIndex === 2;
+
+            rows.sort((a, b) => {
+                let aValue = a.cells[columnIndex].textContent.trim();
+                let bValue = b.cells[columnIndex].textContent.trim();
+
+                if (isNumeric) {
+                    return parseFloat(aValue) - parseFloat(bValue);
+                } else {
+                    return aValue.localeCompare(bValue);
+                }
+            });
+
+            table.innerHTML = '';
+            rows.forEach(row => table.appendChild(row));
+        }
+    </script>
+</body>
+</html>
