@@ -1,0 +1,4 @@
+flask
+pandas
+pickle5
+zipfile36
