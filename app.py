@@ -3,8 +3,10 @@ import os
 import pandas as pd
 import pickle
 from flask import Flask, request, jsonify, render_template_string
+from flask_cors import CORS  # <-- Add this import
 
 app = Flask(__name__)
+CORS(app)  # <-- Add this line to allow all origins
 
 # Step 1: Extract the Saved Components
 zip_filename = 'mhtcet_recommendation_model.zip'
